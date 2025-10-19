@@ -1,0 +1,81 @@
+@page "/clientes/{id:int}"
+@attribute [Authorize]
+@using DevExpress.Blazor
+@using SIAD.Core.DTOs.Clientes
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject ILogger<ClienteDetail> Logger
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private ClienteDetailDto? cliente;
+    private string? error;
+    private bool isLoading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        isLoading = true;
+        error = null;
+
+        try
+        {
+            cliente = await Http.GetFromJsonAsync<ClienteDetailDto>($"api/clientes/{Id}");
+        }
+        catch (HttpRequestException ex)
+        {
+            error = ex.Message;
+            Logger.LogError(ex, "Error al cargar cliente {ClienteId}", Id);
+        }
+        catch (Exception ex)
+        {
+            error = "Ocurrió un error inesperado.";
+            Logger.LogError(ex, "Error inesperado al cargar cliente {ClienteId}", Id);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void BackToList() => Navigation.NavigateTo("/clientes");
+}
+
+<DxScrollView Height="100%">
+    <DxToolbar>
+        <Items>
+            <DxToolbarItem CssClass="m-2" Text="Regresar a la lista" IconCssClass="oi oi-arrow-left" Click="BackToList" />
+        </Items>
+    </DxToolbar>
+
+    @if (isLoading)
+    {
+        <DxSkeletonLine />
+        <DxSkeletonLine />
+        <DxSkeletonLine />
+    }
+    else if (!string.IsNullOrEmpty(error))
+    {
+        <DxAlert AlertType="AlertType.Danger">@error</DxAlert>
+    }
+    else if (cliente is null)
+    {
+        <DxAlert AlertType="AlertType.Warning">Cliente no encontrado.</DxAlert>
+    }
+    else
+    {
+        <DxFormLayout>
+            <DxFormLayoutItem Caption="Código">@cliente.Codigo</DxFormLayoutItem>
+            <DxFormLayoutItem Caption="Nombre">@cliente.Nombre</DxFormLayoutItem>
+            <DxFormLayoutItem Caption="Identidad">@cliente.Identidad</DxFormLayoutItem>
+            <DxFormLayoutItem Caption="RTN">@cliente.Rtn</DxFormLayoutItem>
+            <DxFormLayoutItem Caption="Dirección">@cliente.Direccion</DxFormLayoutItem>
+            <DxFormLayoutItem Caption="Teléfono">@cliente.Telefono</DxFormLayoutItem>
+            <DxFormLayoutItem Caption="Barrio">@cliente.Barrio</DxFormLayoutItem>
+            <DxFormLayoutItem Caption="Ciclo">@cliente.Ciclo</DxFormLayoutItem>
+            <DxFormLayoutItem Caption="Activo">
+                @(cliente.Activo ? "Sí" : "No")
+            </DxFormLayoutItem>
+        </DxFormLayout>
+    }
+</DxScrollView>
