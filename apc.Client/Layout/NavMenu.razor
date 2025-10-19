@@ -1,0 +1,24 @@
+﻿﻿﻿<div>
+    <DxMenu Orientation="@Orientation.Vertical" CssClass="menu display-mobile">
+        <Items>
+            <AuthorizeView>
+                <Authorized>
+                    <DxMenuItem NavigateUrl="Account/Manage" Text="@context.User.Identity?.Name" CssClass="menu-item" IconCssClass="icon user-icon"></DxMenuItem>
+                    <DxMenuItem NavigateUrl="Account/Logout" Text="Log out" CssClass="menu-item" IconCssClass="icon log-out-icon"></DxMenuItem>
+                </Authorized>
+                <NotAuthorized>
+                    <DxMenuItem NavigateUrl="Account/Login" Text="Log in" CssClass="menu-item" IconCssClass="icon log-in-icon"></DxMenuItem>
+                </NotAuthorized>
+            </AuthorizeView>
+        </Items>
+    </DxMenu>                                  
+    <DxMenu Orientation="@Orientation.Vertical" CssClass="menu">
+        <Items>
+            <DxMenuItem NavigateUrl="/" Text="Home" CssClass="menu-item" IconCssClass="icon home-icon"></DxMenuItem>
+            <DxMenuItem NavigateUrl="/counter" Text="Counter" CssClass="menu-item" IconCssClass="icon counter-icon"></DxMenuItem>
+            <DxMenuItem NavigateUrl="/weather" Text="Weather" CssClass="menu-item" IconCssClass="icon weather-icon"></DxMenuItem>                                    
+            <DxMenuItem NavigateUrl="Account/Manage" Text="Settings" CssClass="menu-item" IconCssClass="icon settings-icon"></DxMenuItem>
+            <DxMenuItem NavigateUrl="/clientes" Text="Clientes" CssClass="menu-item" IconCssClass="icon settings-icon"></DxMenuItem>
+        </Items>
+    </DxMenu>
+</div>
