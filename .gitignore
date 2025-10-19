@@ -8,6 +8,7 @@ desktop.ini
 ehthumbs.db
 
 # --- Editores / IDEs ---
+.vs/
 .vscode/
 .idea/
 *.iml
