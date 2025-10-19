@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SIAD.Core.DTOs.Clientes;
 using SIAD.Data;
-using Microsoft.EntityFrameworkCore;
 
 namespace SIAD.Services.Clientes;
 
@@ -89,28 +88,28 @@ public class ClientesService : IClientesService
             .FirstOrDefaultAsync(cancellationToken);
     }
     // Implementación del nuevo método GetTarifasAsync
-    public async Task<IReadOnlyList<ClienteTarifaDto>> GetTarifasAsync(int clienteId, CancellationToken ct = default)
+    public async Task<IReadOnlyList<ClienteTarifaDto>> GetTarifasAsync(int clienteId, CancellationToken cancellationToken = default)
     {
-        var query = _context.configuracion_tasas
+        return await _context.configuracion_tasas
             .AsNoTracking()
             .Where(t => t.maestro_cliente_id == clienteId)
+            .Include(t => t.tarifa_catalogo)
+            .Include(t => t.configuracion_tasas_detalles)
             .OrderByDescending(t => t.fechamodificacion ?? t.fechacreacion)
-            .GroupJoin(
-                _context.configuracion_tasas_detalles.AsNoTracking(),
-                tasa => tasa.configuracion_tasas_id,
-                detalle => detalle.configuracion_tasas_id,
-                (tasa, detalles) => new { tasa, detalles })
-            .SelectMany(
-                td => td.detalles.DefaultIfEmpty(),
-                (td, detalle) => new ClienteTarifaDto(
-                    td.tasa.configuracion_tasas_id,
-                    detalle?.configuracion_tasas_detalle_monto,
-                    detalle?.servicios_id,
-                    td.tasa.fechacreacion,
-                    td.tasa.fechamodificacion,
-                    td.tasa.estado));
-
-        return await query.ToListAsync(ct);
+            .Select(t => new ClienteTarifaDto(
+                t.configuracion_tasas_id,
+                t.tarifa_catalogo_id,
+                t.tarifa_catalogo != null ? t.tarifa_catalogo.nombre : null,
+                t.tarifa_catalogo != null ? t.tarifa_catalogo.precio_base : null,
+                t.tarifa_catalogo != null ? t.tarifa_catalogo.cargo_fijo : null,
+                t.configuracion_tasas_detalles
+                    .OrderByDescending(d => d.fechamodificacion ?? d.fechacreacion)
+                    .Select(d => (decimal?)d.configuracion_tasas_detalle_monto)
+                    .FirstOrDefault(),
+                t.fechacreacion,
+                t.fechamodificacion,
+                t.estado))
+            .ToListAsync(cancellationToken);
     }
 
 

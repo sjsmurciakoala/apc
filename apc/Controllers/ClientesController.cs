@@ -15,6 +15,13 @@ public class ClientesController : ControllerBase
     {
         _clientesService = clientesService;
     }
+    //obtnener tarifas de un cliente
+    [HttpGet("{id:int}/tarifas")]
+    public async Task<IActionResult> GetTarifas(int id, CancellationToken cancellationToken)
+    {
+        var tarifas = await _clientesService.GetTarifasAsync(id, cancellationToken);
+        return Ok(tarifas);
+    }
 
     [HttpGet("search")]
     public async Task<IActionResult> Search([FromQuery] ClienteFilterDto filtro, CancellationToken cancellationToken)

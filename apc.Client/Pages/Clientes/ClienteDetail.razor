@@ -6,10 +6,88 @@
 @inject NavigationManager Navigation
 @inject ILogger<ClienteDetail> Logger
 
+<DxScrollView Height="100%">
+    <DxToolbar>
+        <Items>
+            <DxToolbarItem CssClass="m-2" Text="Regresar a la lista" IconCssClass="oi oi-arrow-left"
+                           Click="BackToList" />
+        </Items>
+    </DxToolbar>
+
+    @if (isLoading)
+    {
+        <DxSkeletonLine />
+        <DxSkeletonLine />
+        <DxSkeletonLine />
+    }
+    else if (!string.IsNullOrEmpty(error))
+    {
+        <DxAlert AlertType="AlertType.Danger">@error</DxAlert>
+    }
+    else if (cliente is null)
+    {
+        <DxAlert AlertType="AlertType.Warning">Cliente no encontrado.</DxAlert>
+    }
+    else
+    {
+        <DxTabs>
+            <DxTab Text="Datos generales">
+                <DxFormLayout>
+                    <DxFormLayoutItem Caption="Código">@cliente.Codigo</DxFormLayoutItem>
+                    <DxFormLayoutItem Caption="Nombre">@cliente.Nombre</DxFormLayoutItem>
+                    <DxFormLayoutItem Caption="Identidad">@cliente.Identidad</DxFormLayoutItem>
+                    <DxFormLayoutItem Caption="RTN">@cliente.Rtn</DxFormLayoutItem>
+                    <DxFormLayoutItem Caption="Dirección">@cliente.Direccion</DxFormLayoutItem>
+                    <DxFormLayoutItem Caption="Teléfono">@cliente.Telefono</DxFormLayoutItem>
+                    <DxFormLayoutItem Caption="Barrio">@cliente.Barrio</DxFormLayoutItem>
+                    <DxFormLayoutItem Caption="Ciclo">@cliente.Ciclo</DxFormLayoutItem>
+                    <DxFormLayoutItem Caption="Activo">
+                        @(cliente.Activo ? "Sí" : "No")
+                    </DxFormLayoutItem>
+                </DxFormLayout>
+            </DxTab>
+            <DxTab Text="Tarifas">
+                <div class="d-flex flex-column gap-3">
+                    @if (!tarifasLoaded)
+                    {
+                        <DxButton Text="Cargar tarifas" RenderStyle="ButtonRenderStyle.Primary"
+                                  Click="LoadTarifasAsync" />
+                    }
+                    @if (!string.IsNullOrEmpty(tarifasError))
+                    {
+                        <DxAlert AlertType="AlertType.Danger">@tarifasError</DxAlert>
+                    }
+                    else if (tarifasLoaded && tarifas.Length == 0)
+                    {
+                        <DxAlert AlertType="AlertType.Info">Sin configuraciones de tarifa.</DxAlert>
+                    }
+                    else if (tarifasLoaded)
+                    {
+                        <DxGrid Data="@tarifas" KeyFieldName="@nameof(ClienteTarifaDto.ConfiguracionId)">
+                            <Columns>
+                                <DxGridDataColumn FieldName="@nameof(ClienteTarifaDto.TarifaNombre)" Caption="Tarifa" />
+                                <DxGridDataColumn FieldName="@nameof(ClienteTarifaDto.PrecioBase)" Caption="Precio base" />
+                                <DxGridDataColumn FieldName="@nameof(ClienteTarifaDto.CargoFijo)" Caption="Cargo fijo" />
+                                <DxGridDataColumn FieldName="@nameof(ClienteTarifaDto.MontoConfigurado)" Caption="Monto configurado" />
+                                <DxGridDataColumn FieldName="@nameof(ClienteTarifaDto.FechaCreacion)" Caption="Creado" />
+                                <DxGridDataColumn FieldName="@nameof(ClienteTarifaDto.FechaModificacion)" Caption="Modificado" />
+                                <DxGridDataColumn FieldName="@nameof(ClienteTarifaDto.Activa)" Caption="Activa" />
+                            </Columns>
+                        </DxGrid>
+                    }
+                </div>
+            </DxTab>
+        </DxTabs>
+    }
+</DxScrollView>
+
 @code {
     [Parameter] public int Id { get; set; }
 
     private ClienteDetailDto? cliente;
+    private ClienteTarifaDto[] tarifas = Array.Empty<ClienteTarifaDto>();
+    private bool tarifasLoaded;
+    private string? tarifasError;
     private string? error;
     private bool isLoading = true;
 
@@ -38,44 +116,26 @@
         }
     }
 
+    private async Task LoadTarifasAsync()
+    {
+        if (tarifasLoaded || cliente is null)
+            return;
+
+        try
+        {
+            tarifas = await Http.GetFromJsonAsync<ClienteTarifaDto[]>($"api/clientes/{cliente.Id}/tarifas")
+                      ?? Array.Empty<ClienteTarifaDto>();
+            tarifasError = null;
+        }
+        catch (Exception ex)
+        {
+            tarifasError = "Error al cargar las tarifas del cliente. " + ex.Message;
+        }
+        finally
+        {
+            tarifasLoaded = true;
+        }
+    }
+
     private void BackToList() => Navigation.NavigateTo("/clientes");
 }
-
-<DxScrollView Height="100%">
-    <DxToolbar>
-        <Items>
-            <DxToolbarItem CssClass="m-2" Text="Regresar a la lista" IconCssClass="oi oi-arrow-left" Click="BackToList" />
-        </Items>
-    </DxToolbar>
-
-    @if (isLoading)
-    {
-        <DxSkeletonLine />
-        <DxSkeletonLine />
-        <DxSkeletonLine />
-    }
-    else if (!string.IsNullOrEmpty(error))
-    {
-        <DxAlert AlertType="AlertType.Danger">@error</DxAlert>
-    }
-    else if (cliente is null)
-    {
-        <DxAlert AlertType="AlertType.Warning">Cliente no encontrado.</DxAlert>
-    }
-    else
-    {
-        <DxFormLayout>
-            <DxFormLayoutItem Caption="Código">@cliente.Codigo</DxFormLayoutItem>
-            <DxFormLayoutItem Caption="Nombre">@cliente.Nombre</DxFormLayoutItem>
-            <DxFormLayoutItem Caption="Identidad">@cliente.Identidad</DxFormLayoutItem>
-            <DxFormLayoutItem Caption="RTN">@cliente.Rtn</DxFormLayoutItem>
-            <DxFormLayoutItem Caption="Dirección">@cliente.Direccion</DxFormLayoutItem>
-            <DxFormLayoutItem Caption="Teléfono">@cliente.Telefono</DxFormLayoutItem>
-            <DxFormLayoutItem Caption="Barrio">@cliente.Barrio</DxFormLayoutItem>
-            <DxFormLayoutItem Caption="Ciclo">@cliente.Ciclo</DxFormLayoutItem>
-            <DxFormLayoutItem Caption="Activo">
-                @(cliente.Activo ? "Sí" : "No")
-            </DxFormLayoutItem>
-        </DxFormLayout>
-    }
-</DxScrollView>
