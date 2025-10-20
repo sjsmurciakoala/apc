@@ -1,4 +1,4 @@
-@page "/clientes/{id:int}"
+﻿@page "/clientes/{id:int}"
 @attribute [Authorize]
 @using DevExpress.Blazor
 @using SIAD.Core.DTOs.Clientes
@@ -77,6 +77,54 @@
                     }
                 </div>
             </DxTab>
+            <DxTab Text="Estado de cuenta">
+                <div class="d-flex flex-column gap-3">
+                    @if (!estadoCuentaLoaded)
+                    {
+                        <DxButton Text="Cargar estado de cuenta" RenderStyle="ButtonRenderStyle.Primary"
+                                  Click="LoadEstadoCuentaAsync" />
+                    }
+                    @if (!string.IsNullOrEmpty(estadoCuentaError))
+                    {
+                        <DxAlert AlertType="AlertType.Danger">@estadoCuentaError</DxAlert>
+                    }
+                    else if (estadoCuentaLoaded && estadoCuenta is not null)
+                    {
+                        <DxFormLayout>
+                            <DxFormLayoutItem Caption="Saldo actual">@((estadoCuenta.SaldoActual ?? 0).ToString("C2"))</DxFormLayoutItem>
+                            <DxFormLayoutItem Caption="Fecha último pago">@(estadoCuenta.FechaUltimoPago?.ToString("dd/MM/yyyy") ?? "-")</DxFormLayoutItem>
+                            <DxFormLayoutItem Caption="Monto último pago">@((estadoCuenta.UltimoPagoMonto ?? 0).ToString("C2"))</DxFormLayoutItem>
+                            <DxFormLayoutItem Caption="Consumo promedio">@((estadoCuenta.ConsumoPromedio ?? 0).ToString("0.##"))</DxFormLayoutItem>
+                        </DxFormLayout>
+                    }
+
+                    @if (!movimientosLoaded)
+                    {
+                        <DxButton Text="Cargar movimientos" RenderStyle="ButtonRenderStyle.Secondary"
+                                  Click="LoadMovimientosAsync" />
+                    }
+                    @if (!string.IsNullOrEmpty(movimientosError))
+                    {
+                        <DxAlert AlertType="AlertType.Danger">@movimientosError</DxAlert>
+                    }
+                    else if (movimientosLoaded && movimientos.Length == 0)
+                    {
+                        <DxAlert AlertType="AlertType.Info">Sin movimientos registrados.</DxAlert>
+                    }
+                    else if (movimientosLoaded)
+                    {
+                        <DxGrid Data="@movimientos" KeyFieldName="@nameof(ClienteMovimientoDto.MovimientoId)">
+                            <Columns>
+                                <DxGridDataColumn FieldName="@nameof(ClienteMovimientoDto.Fecha)" Caption="Fecha" />
+                                <DxGridDataColumn FieldName="@nameof(ClienteMovimientoDto.Tipo)" Caption="Tipo" />
+                                <DxGridDataColumn FieldName="@nameof(ClienteMovimientoDto.Descripcion)" Caption="Descripción" />
+                                <DxGridDataColumn FieldName="@nameof(ClienteMovimientoDto.Monto)" Caption="Monto" />
+                                <DxGridDataColumn FieldName="@nameof(ClienteMovimientoDto.SaldoInline)" Caption="Saldo" />
+                            </Columns>
+                        </DxGrid>
+                    }
+                </div>
+            </DxTab>
         </DxTabs>
     }
 </DxScrollView>
@@ -88,6 +136,15 @@
     private ClienteTarifaDto[] tarifas = Array.Empty<ClienteTarifaDto>();
     private bool tarifasLoaded;
     private string? tarifasError;
+
+    private ClienteEstadoCuentaDto? estadoCuenta;
+    private bool estadoCuentaLoaded;
+    private string? estadoCuentaError;
+
+    private ClienteMovimientoDto[] movimientos = Array.Empty<ClienteMovimientoDto>();
+    private bool movimientosLoaded;
+    private string? movimientosError;
+
     private string? error;
     private bool isLoading = true;
 
@@ -116,6 +173,8 @@
         }
     }
 
+    private void BackToList() => Navigation.NavigateTo("/clientes");
+
     private async Task LoadTarifasAsync()
     {
         if (tarifasLoaded || cliente is null)
@@ -137,5 +196,44 @@
         }
     }
 
-    private void BackToList() => Navigation.NavigateTo("/clientes");
+    private async Task LoadEstadoCuentaAsync()
+    {
+        if (estadoCuentaLoaded || cliente is null)
+            return;
+
+        try
+        {
+            estadoCuenta = await Http.GetFromJsonAsync<ClienteEstadoCuentaDto>($"api/clientes/{cliente.Id}/estado-cuenta");
+            estadoCuentaError = null;
+        }
+        catch (Exception ex)
+        {
+            estadoCuentaError = "Error al cargar el estado de cuenta. " + ex.Message;
+        }
+        finally
+        {
+            estadoCuentaLoaded = true;
+        }
+    }
+
+    private async Task LoadMovimientosAsync()
+    {
+        if (movimientosLoaded || cliente is null)
+            return;
+
+        try
+        {
+            movimientos = await Http.GetFromJsonAsync<ClienteMovimientoDto[]>($"api/clientes/{cliente.Id}/movimientos")
+                         ?? Array.Empty<ClienteMovimientoDto>();
+            movimientosError = null;
+        }
+        catch (Exception ex)
+        {
+            movimientosError = "Error al cargar los movimientos. " + ex.Message;
+        }
+        finally
+        {
+            movimientosLoaded = true;
+        }
+    }
 }

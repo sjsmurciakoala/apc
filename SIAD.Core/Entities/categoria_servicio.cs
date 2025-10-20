@@ -20,4 +20,6 @@ public partial class categoria_servicio
     public DateTime? fechamodificacion { get; set; }
 
     public virtual ICollection<cliente_maestro> cliente_maestros { get; set; } = new List<cliente_maestro>();
+
+    public virtual ICollection<solicitud_servicio> solicitud_servicios { get; set; } = new List<solicitud_servicio>();
 }

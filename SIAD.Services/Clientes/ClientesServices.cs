@@ -1,3 +1,4 @@
+using System;
 using Microsoft.EntityFrameworkCore;
 using SIAD.Core.DTOs.Clientes;
 using SIAD.Data;
@@ -110,6 +111,84 @@ public class ClientesService : IClientesService
                 t.fechamodificacion,
                 t.estado))
             .ToListAsync(cancellationToken);
+    }
+    public async Task<ClienteEstadoCuentaDto> GetEstadoCuentaAsync(int clienteId, CancellationToken ct = default)
+    {
+        var clave = await _context.cliente_maestros
+            .AsNoTracking()
+            .Where(c => c.maestro_cliente_id == clienteId)
+            .Select(c => c.maestro_cliente_clave)
+            .FirstOrDefaultAsync(ct);
+
+        if (string.IsNullOrWhiteSpace(clave))
+        {
+            return new ClienteEstadoCuentaDto(null, null, null, null, null);
+        }
+
+        var movimientosQuery = _context.transaccion_abonados
+            .AsNoTracking()
+            .Where(t => t.cliente_clave == clave);
+
+        var ultimoMovimiento = await movimientosQuery
+            .OrderByDescending(t => t.fecha_docu)
+            .Select(t => new { t.fecha_docu, t.saldo })
+            .FirstOrDefaultAsync(ct);
+
+        var ultimoPago = await movimientosQuery
+            .Where(t => t.tipotransaccion != null && EF.Functions.ILike(t.tipotransaccion, "%PAGO%"))
+            .OrderByDescending(t => t.fecha_docu)
+            .Select(t => new { t.fecha_docu, t.creditos, t.debitos, t.saldo })
+            .FirstOrDefaultAsync(ct);
+
+        var saldoActual = ultimoMovimiento?.saldo ?? ultimoPago?.saldo ?? 0m;
+        DateTime? fechaPago = ultimoPago?.fecha_docu.HasValue == true 
+            ? ultimoPago.fecha_docu.Value.ToDateTime(TimeOnly.MinValue) 
+            : null;
+        decimal? montoPago = ultimoPago?.creditos ?? ultimoPago?.debitos ?? 0m;
+
+        var consumos = await _context.historicomedicions
+            .AsNoTracking()
+            .Where(h => h.clave == clave && h.consumo.HasValue)
+            .OrderByDescending(h => h.fecha)
+            .Select(h => h.consumo!.Value)
+            .Take(6)
+            .ToArrayAsync(ct);
+
+        decimal? consumoPromedio = consumos.Length > 0 ? consumos.Average() : 0m;
+
+        return new ClienteEstadoCuentaDto(
+            saldoActual,
+            fechaPago,
+            montoPago,
+            consumoPromedio,
+            null);
+    }
+
+    public async Task<IReadOnlyList<ClienteMovimientoDto>> GetMovimientosAsync(int clienteId, CancellationToken ct = default)
+    {
+        var clave = await _context.cliente_maestros
+            .AsNoTracking()
+            .Where(c => c.maestro_cliente_id == clienteId)
+            .Select(c => c.maestro_cliente_clave)
+            .FirstOrDefaultAsync(ct);
+
+        if (string.IsNullOrWhiteSpace(clave))
+        {
+            return Array.Empty<ClienteMovimientoDto>();
+        }
+
+        return await _context.transaccion_abonados
+            .AsNoTracking()
+            .Where(t => t.cliente_clave == clave)
+            .OrderByDescending(t => t.fecha_docu)
+            .Select(t => new ClienteMovimientoDto(
+                t.ide,
+                t.fecha_docu.HasValue ? t.fecha_docu.Value.ToDateTime(TimeOnly.MinValue) : DateTime.MinValue,
+                t.tipotransaccion ?? string.Empty,
+                t.descripcion,
+                (t.creditos ?? 0) - (t.debitos ?? 0),
+                t.saldo ?? 0))
+            .ToListAsync(ct);
     }
 
 

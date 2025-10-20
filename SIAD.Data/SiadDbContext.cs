@@ -22,6 +22,12 @@ public partial class SiadDbContext : DbContext
 
     public virtual DbSet<cliente_maestro> cliente_maestros { get; set; }
 
+    public virtual DbSet<concepto_cobro_adicional> concepto_cobro_adicionals { get; set; }
+
+    public virtual DbSet<condicion_lectura> condicion_lecturas { get; set; }
+
+    public virtual DbSet<configuracion_cobros_adicionale> configuracion_cobros_adicionales { get; set; }
+
     public virtual DbSet<configuracion_tasa> configuracion_tasas { get; set; }
 
     public virtual DbSet<configuracion_tasas_detalle> configuracion_tasas_detalles { get; set; }
@@ -35,6 +41,10 @@ public partial class SiadDbContext : DbContext
     public virtual DbSet<maestro_medidor> maestro_medidors { get; set; }
 
     public virtual DbSet<servicio> servicios { get; set; }
+
+    public virtual DbSet<solicitud_servicio> solicitud_servicios { get; set; }
+
+    public virtual DbSet<tarifa> tarifas { get; set; }
 
     public virtual DbSet<tarifas_catalogo> tarifas_catalogos { get; set; }
 
@@ -171,6 +181,35 @@ public partial class SiadDbContext : DbContext
             entity.HasOne(d => d.tipo_uso_codigoNavigation).WithMany(p => p.cliente_maestros)
                 .HasForeignKey(d => d.tipo_uso_codigo)
                 .HasConstraintName("tipo_uso_codigo_cliente_maestro_fkey");
+        });
+
+        modelBuilder.Entity<concepto_cobro_adicional>(entity =>
+        {
+            entity.HasKey(e => e.ide).HasName("concepto_cobro_adicional_pkey");
+
+            entity.ToTable("concepto_cobro_adicional");
+
+            entity.Property(e => e.ide).UseIdentityAlwaysColumn();
+            entity.Property(e => e.concepto).HasColumnType("character varying");
+        });
+
+        modelBuilder.Entity<condicion_lectura>(entity =>
+        {
+            entity.HasKey(e => e.codigo).HasName("condicion_lectura_pkey");
+
+            entity.ToTable("condicion_lectura");
+
+            entity.Property(e => e.codigo).HasColumnType("character varying");
+            entity.Property(e => e.descripcion).HasColumnType("character varying");
+            entity.Property(e => e.facturacion).HasColumnType("character varying");
+            entity.Property(e => e.tipo).HasColumnType("character varying");
+        });
+
+        modelBuilder.Entity<configuracion_cobros_adicionale>(entity =>
+        {
+            entity.HasKey(e => e.ide).HasName("configuracion_cobros_adicionales_pkey");
+
+            entity.Property(e => e.ide).UseIdentityAlwaysColumn();
         });
 
         modelBuilder.Entity<configuracion_tasa>(entity =>
@@ -522,6 +561,35 @@ public partial class SiadDbContext : DbContext
             entity.Property(e => e.servicios_descripcionlarga).HasMaxLength(300);
             entity.Property(e => e.usuariocreacion).HasMaxLength(256);
             entity.Property(e => e.usuariomodificacion).HasMaxLength(256);
+        });
+
+        modelBuilder.Entity<solicitud_servicio>(entity =>
+        {
+            entity.HasKey(e => e.solicitud_servicio_id).HasName("solicitud_servicio_pkey");
+
+            entity.ToTable("solicitud_servicio");
+
+            entity.Property(e => e.solicitud_servicio_id).UseIdentityAlwaysColumn();
+            entity.Property(e => e.clave_sure).HasMaxLength(50);
+            entity.Property(e => e.fechacreacion).HasColumnType("timestamp without time zone");
+            entity.Property(e => e.fechamodificacion).HasColumnType("timestamp without time zone");
+            entity.Property(e => e.fechanacimiento).HasColumnType("timestamp without time zone");
+            entity.Property(e => e.usuariocreacion).HasMaxLength(256);
+            entity.Property(e => e.usuariomodificacion).HasMaxLength(256);
+
+            entity.HasOne(d => d.categoria_servicio).WithMany(p => p.solicitud_servicios)
+                .HasForeignKey(d => d.categoria_servicio_id)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("solicitud_servicio_categoria_servicio_id_fkey");
+        });
+
+        modelBuilder.Entity<tarifa>(entity =>
+        {
+            entity.HasKey(e => new { e.tipo, e.categoria_id, e.codigo }).HasName("tarifas_pkey");
+
+            entity.Property(e => e.codigo).HasColumnType("character varying");
+            entity.Property(e => e.descripcion).HasColumnType("character varying");
+            entity.Property(e => e.valor).HasPrecision(18, 2);
         });
 
         modelBuilder.Entity<tarifas_catalogo>(entity =>

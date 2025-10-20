@@ -12,5 +12,8 @@ public interface IClientesService
 
     Task<IReadOnlyList<ClienteTarifaDto>> GetTarifasAsync(int clienteId, CancellationToken cancellationToken = default);
 
+    Task<ClienteEstadoCuentaDto> GetEstadoCuentaAsync(int clienteId, CancellationToken ct = default);
+    Task<IReadOnlyList<ClienteMovimientoDto>> GetMovimientosAsync(int clienteId, CancellationToken ct = default);
+
 
 }
