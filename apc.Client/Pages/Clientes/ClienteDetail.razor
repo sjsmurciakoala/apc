@@ -2,6 +2,7 @@
 @attribute [Authorize]
 @using DevExpress.Blazor
 @using SIAD.Core.DTOs.Clientes
+@using SIAD.Core.DTOs.Solicitudes
 @inject HttpClient Http
 @inject NavigationManager Navigation
 @inject ILogger<ClienteDetail> Logger
@@ -125,6 +126,38 @@
                     }
                 </div>
             </DxTab>
+            <DxTab Text="Solicitudes">
+    <div class="d-flex flex-column gap-3">
+        @if (!solicitudesLoaded)
+        {
+            <DxButton Text="Cargar solicitudes"
+                      RenderStyle="ButtonRenderStyle.Primary"
+                      Click="LoadSolicitudesAsync" />
+        }
+
+        @if (!string.IsNullOrEmpty(solicitudesError))
+        {
+            <DxAlert AlertType="AlertType.Danger">@solicitudesError</DxAlert>
+        }
+        else if (solicitudesLoaded && solicitudes.Count == 0)
+        {
+            <DxAlert AlertType="AlertType.Info">Sin solicitudes registradas.</DxAlert>
+        }
+        else if (solicitudesLoaded)
+        {
+            <DxGrid Data="@solicitudes" KeyFieldName="Id">
+                <Columns>
+                    <DxGridDataColumn FieldName="IdentificacionCliente" Caption="Identidad" />
+                    <DxGridDataColumn FieldName="NombreCliente" Caption="Nombre" />
+                    <DxGridDataColumn FieldName="Fecha" Caption="Fecha" />
+                    <DxGridDataColumn FieldName="Estado" Caption="Activa" />
+                </Columns>
+            </DxGrid>
+        }
+    </div>
+</DxTab>
+
+
         </DxTabs>
     }
 </DxScrollView>
@@ -147,6 +180,34 @@
 
     private string? error;
     private bool isLoading = true;
+
+
+    private List<SolicitudListDto>solicitudes = new();
+    private bool solicitudesLoaded;
+    private string? solicitudesError;
+    private async Task LoadSolicitudesAsync()
+    {
+        if (solicitudesLoaded || cliente is null)
+            return;
+        try
+        {
+            var query = string.IsNullOrWhiteSpace(cliente.Identidad)
+                ? string.Empty
+                : $"?clienteIdentidad={Uri.EscapeDataString(cliente.Identidad)}";
+            var url = $"api/solicitudes{query}";
+            solicitudes = (await Http.GetFromJsonAsync<List<SolicitudListDto>>(url)) ?? new List<SolicitudListDto>();
+            solicitudesError = null;
+        }
+        catch(Exception ex)
+        {
+            solicitudesError = "Error al cargar las solicitudes del cliente. " + ex.Message;
+        }
+        finally
+        {
+            solicitudesLoaded = true;
+        }
+        
+    }
 
     protected override async Task OnParametersSetAsync()
     {

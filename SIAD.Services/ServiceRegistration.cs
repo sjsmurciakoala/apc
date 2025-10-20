@@ -1,6 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using SIAD.Core.Entities;
+using SIAD.Services;
 using SIAD.Services.Clientes;
+using SIAD.Services.Solicitudes;
 namespace SIAD.Services;
 
 public static class ServiceRegistration
@@ -10,7 +12,11 @@ public static class ServiceRegistration
         // Add AutoMapper profiles and service implementations here.
         services.AddAutoMapper(typeof(ServiceRegistration).Assembly);
 
-         services.AddScoped<IClientesService, ClientesService>();
+        services.AddScoped<IClientesService, ClientesService>();
+         
+        //solicitudes
+        services.AddScoped<ISolicitudesService, SolicitudesService>();
+
        // agregar más servicios después
         return services;
     }
