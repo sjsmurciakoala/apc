@@ -24,6 +24,13 @@ public class SolicitudesController : ControllerBase
         return solicitud is null ? NotFound() : Ok(solicitud);
     }
 
+    [HttpGet("categorias")]
+    public async Task<IActionResult> GetCategorias(CancellationToken ct)
+    {
+        var categorias = await _service.GetCategoriasAsync(ct);
+        return Ok(categorias);
+    }
+
     [HttpPost]
     public async Task<IActionResult> Post([FromBody] SolicitudDetailDto dto, CancellationToken ct)
     {

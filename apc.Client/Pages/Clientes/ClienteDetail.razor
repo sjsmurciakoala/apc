@@ -1,17 +1,22 @@
 ﻿@page "/clientes/{id:int}"
 @attribute [Authorize]
 @using DevExpress.Blazor
+@using System.Linq
+@using System.ComponentModel.DataAnnotations
 @using SIAD.Core.DTOs.Clientes
 @using SIAD.Core.DTOs.Solicitudes
 @inject HttpClient Http
 @inject NavigationManager Navigation
 @inject ILogger<ClienteDetail> Logger
+@inject IToastNotificationService ToastService
 
 <DxScrollView Height="100%">
+    <DxToastProvider Name="SolicitudesToast"
+                     MaxToastCount="4" />
     <DxToolbar>
         <Items>
             <DxToolbarItem CssClass="m-2" Text="Regresar a la lista" IconCssClass="oi oi-arrow-left"
-                           Click="BackToList" />
+                Click="BackToList" />
         </Items>
     </DxToolbar>
 
@@ -51,8 +56,7 @@
                 <div class="d-flex flex-column gap-3">
                     @if (!tarifasLoaded)
                     {
-                        <DxButton Text="Cargar tarifas" RenderStyle="ButtonRenderStyle.Primary"
-                                  Click="LoadTarifasAsync" />
+                        <DxButton Text="Cargar tarifas" RenderStyle="ButtonRenderStyle.Primary" Click="LoadTarifasAsync" />
                     }
                     @if (!string.IsNullOrEmpty(tarifasError))
                     {
@@ -69,9 +73,11 @@
                                 <DxGridDataColumn FieldName="@nameof(ClienteTarifaDto.TarifaNombre)" Caption="Tarifa" />
                                 <DxGridDataColumn FieldName="@nameof(ClienteTarifaDto.PrecioBase)" Caption="Precio base" />
                                 <DxGridDataColumn FieldName="@nameof(ClienteTarifaDto.CargoFijo)" Caption="Cargo fijo" />
-                                <DxGridDataColumn FieldName="@nameof(ClienteTarifaDto.MontoConfigurado)" Caption="Monto configurado" />
+                                <DxGridDataColumn FieldName="@nameof(ClienteTarifaDto.MontoConfigurado)"
+                                    Caption="Monto configurado" />
                                 <DxGridDataColumn FieldName="@nameof(ClienteTarifaDto.FechaCreacion)" Caption="Creado" />
-                                <DxGridDataColumn FieldName="@nameof(ClienteTarifaDto.FechaModificacion)" Caption="Modificado" />
+                                <DxGridDataColumn FieldName="@nameof(ClienteTarifaDto.FechaModificacion)"
+                                    Caption="Modificado" />
                                 <DxGridDataColumn FieldName="@nameof(ClienteTarifaDto.Activa)" Caption="Activa" />
                             </Columns>
                         </DxGrid>
@@ -83,7 +89,7 @@
                     @if (!estadoCuentaLoaded)
                     {
                         <DxButton Text="Cargar estado de cuenta" RenderStyle="ButtonRenderStyle.Primary"
-                                  Click="LoadEstadoCuentaAsync" />
+                            Click="LoadEstadoCuentaAsync" />
                     }
                     @if (!string.IsNullOrEmpty(estadoCuentaError))
                     {
@@ -92,17 +98,21 @@
                     else if (estadoCuentaLoaded && estadoCuenta is not null)
                     {
                         <DxFormLayout>
-                            <DxFormLayoutItem Caption="Saldo actual">@((estadoCuenta.SaldoActual ?? 0).ToString("C2"))</DxFormLayoutItem>
-                            <DxFormLayoutItem Caption="Fecha último pago">@(estadoCuenta.FechaUltimoPago?.ToString("dd/MM/yyyy") ?? "-")</DxFormLayoutItem>
-                            <DxFormLayoutItem Caption="Monto último pago">@((estadoCuenta.UltimoPagoMonto ?? 0).ToString("C2"))</DxFormLayoutItem>
-                            <DxFormLayoutItem Caption="Consumo promedio">@((estadoCuenta.ConsumoPromedio ?? 0).ToString("0.##"))</DxFormLayoutItem>
+                            <DxFormLayoutItem Caption="Saldo actual">@((estadoCuenta.SaldoActual ?? 0).ToString("C2"))
+                            </DxFormLayoutItem>
+                            <DxFormLayoutItem Caption="Fecha último pago">@(estadoCuenta.FechaUltimoPago?.ToString("dd/MM/yyyy")
+                                                        ?? "-")</DxFormLayoutItem>
+                            <DxFormLayoutItem Caption="Monto último pago">@((estadoCuenta.UltimoPagoMonto ?? 0).ToString("C2"))
+                            </DxFormLayoutItem>
+                            <DxFormLayoutItem Caption="Consumo promedio">@((estadoCuenta.ConsumoPromedio ?? 0).ToString("0.##"))
+                            </DxFormLayoutItem>
                         </DxFormLayout>
                     }
 
                     @if (!movimientosLoaded)
                     {
                         <DxButton Text="Cargar movimientos" RenderStyle="ButtonRenderStyle.Secondary"
-                                  Click="LoadMovimientosAsync" />
+                            Click="LoadMovimientosAsync" />
                     }
                     @if (!string.IsNullOrEmpty(movimientosError))
                     {
@@ -127,35 +137,163 @@
                 </div>
             </DxTab>
             <DxTab Text="Solicitudes">
-    <div class="d-flex flex-column gap-3">
-        @if (!solicitudesLoaded)
-        {
-            <DxButton Text="Cargar solicitudes"
-                      RenderStyle="ButtonRenderStyle.Primary"
-                      Click="LoadSolicitudesAsync" />
-        }
+                <div class="d-flex flex-column gap-3">
+                    <DxButton Text="Cargar solicitudes" SizeMode="SizeMode.Medium" RenderStyle="ButtonRenderStyle.Secondary" Click="LoadSolicitudesAsync"
+                        Enabled="@(!solicitudesLoaded)" />
 
-        @if (!string.IsNullOrEmpty(solicitudesError))
-        {
-            <DxAlert AlertType="AlertType.Danger">@solicitudesError</DxAlert>
-        }
-        else if (solicitudesLoaded && solicitudes.Count == 0)
-        {
-            <DxAlert AlertType="AlertType.Info">Sin solicitudes registradas.</DxAlert>
-        }
-        else if (solicitudesLoaded)
-        {
-            <DxGrid Data="@solicitudes" KeyFieldName="Id">
-                <Columns>
-                    <DxGridDataColumn FieldName="IdentificacionCliente" Caption="Identidad" />
-                    <DxGridDataColumn FieldName="NombreCliente" Caption="Nombre" />
-                    <DxGridDataColumn FieldName="Fecha" Caption="Fecha" />
-                    <DxGridDataColumn FieldName="Estado" Caption="Activa" />
-                </Columns>
-            </DxGrid>
-        }
-    </div>
-</DxTab>
+                    @if (!string.IsNullOrEmpty(solicitudesError))
+                    {
+                        <DxAlert AlertType="AlertType.Danger">@solicitudesError</DxAlert>
+                    }
+                    else if (solicitudesLoaded && solicitudes.Count == 0)
+                    {
+                        <DxAlert AlertType="AlertType.Info">Sin solicitudes registradas.</DxAlert>
+                    }
+                    else if (solicitudesLoaded)
+                    {
+                        <DxGrid Data="@solicitudes" KeyFieldName="Id">
+                            <Columns>
+                                <DxGridDataColumn FieldName="Id" Caption="Solicitud #" Width="120" />
+                                <DxGridDataColumn FieldName="IdentificacionCliente" Caption="Identidad" />
+                                <DxGridDataColumn FieldName="NombreCliente" Caption="Nombre" />
+                                <DxGridDataColumn FieldName="CategoriaServicioNombre" Caption="Categoría" />
+                                <DxGridDataColumn FieldName="Fecha" Caption="Fecha">
+                                    <CellDisplayTemplate Context="cell">
+                                        @{
+                                            var item = (SolicitudListDto)cell.DataItem;
+                                        }
+                                        @item.Fecha.ToString("dd/MM/yyyy HH:mm")
+                                    </CellDisplayTemplate>
+                                </DxGridDataColumn>
+                                <DxGridDataColumn FieldName="Estado" Caption="Activa">
+                                    <CellDisplayTemplate Context="cell">
+                                        @(((SolicitudListDto)cell.DataItem).Estado ? "Sí" : "No")
+                                    </CellDisplayTemplate>
+                                </DxGridDataColumn>
+                                <DxGridDataColumn Caption="Acciones">
+                                    <CellDisplayTemplate Context="cell">
+                                        @{
+                                            var item = (SolicitudListDto)cell.DataItem;
+                                        }
+                                        <DxButton Text="Ver detalle" RenderStyle="ButtonRenderStyle.Link"
+                                            Click="@(() => MostrarDetalleSolicitudAsync(item))" />
+                                    </CellDisplayTemplate>
+                                </DxGridDataColumn>
+                            </Columns>
+                        </DxGrid>
+                    }
+
+                    <DxCard>
+                        <DxCardHeader>Registrar nueva solicitud</DxCardHeader>
+                        <DxCardBody>
+                            @if (!string.IsNullOrEmpty(categoriasError))
+                            {
+                                <DxAlert AlertType="AlertType.Danger">@categoriasError</DxAlert>
+                            }
+                            else if (categoriasLoaded && categorias.Count == 0)
+                            {
+                                <DxAlert AlertType="AlertType.Warning">No hay categorías activas disponibles para registrar
+                                    solicitudes.</DxAlert>
+                            }
+                            <DxFormLayout CssClass="mb-2">
+                                <DxFormLayoutItem Caption="Teléfono *">
+                                    <DxTextBox @bind-Text="nuevaSolicitud.Telefono"
+                                               NullText="Ingresa un teléfono de contacto" />
+                                </DxFormLayoutItem>
+                                <DxFormLayoutItem Caption="Dirección *">
+                                    <DxTextBox @bind-Text="nuevaSolicitud.Direccion"
+                                               NullText="Ingresa una dirección válida" />
+                                </DxFormLayoutItem>
+                                <DxFormLayoutItem Caption="Correo *">
+                                    <DxTextBox @bind-Text="nuevaSolicitud.Correo"
+                                               NullText="usuario@dominio.com" />
+                                </DxFormLayoutItem>
+                                <DxFormLayoutItem Caption="Observación">
+                                    <DxMemo @bind-Text="nuevaSolicitud.Observacion" Rows="3" />
+                                </DxFormLayoutItem>
+                                <DxFormLayoutItem Caption="Categoría">
+                                    <DxComboBox TData="SolicitudCategoriaDto" TValue="int" Data="@categorias"
+                                        ValueFieldName="Id" TextFieldName="Nombre" NullText="Seleccione una categoría"
+                                        @bind-Value="nuevaSolicitud.CategoriaServicioId"
+                                        Enabled="@(categorias.Count > 0 && string.IsNullOrEmpty(categoriasError))" />
+                                </DxFormLayoutItem>
+                            </DxFormLayout>
+                            <DxButton renderStyle="ButtonRenderStyle.Primary"
+                                RenderStyleMode="ButtonRenderStyleMode.Contained" Text="Guardar solicitud"
+                                Click="CrearSolicitudAsync" />
+                        </DxCardBody>
+                    </DxCard>
+
+                    <DxPopup ShowCloseButton="true" CloseOnOutsideClick="true" Visible="detalleSolicitudVisible"
+                        VisibleChanged="@(v => detalleSolicitudVisible = v)">
+                        <HeaderContent>Detalle de solicitud</HeaderContent>
+                        <BodyContent>
+                            @if (detalleSolicitudCargando)
+                            {
+                                <DxSkeletonLine />
+                            }
+                            else if (!string.IsNullOrEmpty(detalleSolicitudError))
+                            {
+                                <DxAlert AlertType="AlertType.Danger">@detalleSolicitudError</DxAlert>
+                            }
+                            else if (solicitudSeleccionada is not null)
+                            {
+                                <DxFormLayout>
+                                    <DxFormLayoutItem Caption="Solicitud #">@solicitudSeleccionada.Id</DxFormLayoutItem>
+                                    <DxFormLayoutItem Caption="Identidad">@solicitudSeleccionada.IdentificacionCliente
+                                    </DxFormLayoutItem>
+                                    <DxFormLayoutItem Caption="Nombre">@solicitudSeleccionada.NombreCliente</DxFormLayoutItem>
+                                    <DxFormLayoutItem Caption="Teléfono">@solicitudSeleccionada.Telefono</DxFormLayoutItem>
+                                    <DxFormLayoutItem Caption="Dirección">@solicitudSeleccionada.Direccion</DxFormLayoutItem>
+                                    <DxFormLayoutItem Caption="Correo">@solicitudSeleccionada.Correo</DxFormLayoutItem>
+                                    <DxFormLayoutItem Caption="Categoría">
+                                        @(solicitudSeleccionada.CategoriaServicioNombre
+                                                                        ?? categorias.FirstOrDefault(c => c.Id ==
+                                                                        solicitudSeleccionada.CategoriaServicioId)?.Nombre
+                                                                        ?? solicitudSeleccionada.CategoriaServicioId.ToString())
+                                    </DxFormLayoutItem>
+                                    <DxFormLayoutItem Caption="Observación">
+                                        @(!string.IsNullOrWhiteSpace(solicitudSeleccionada.Observacion) ?
+                                                                        solicitudSeleccionada.Observacion : "-")
+                                    </DxFormLayoutItem>
+                                    @if (!string.IsNullOrWhiteSpace(solicitudSeleccionada.EmpresaNombre))
+                                    {
+                                        <DxFormLayoutItem Caption="Empresa">@solicitudSeleccionada.EmpresaNombre</DxFormLayoutItem>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(solicitudSeleccionada.EmpresaTelefono))
+                                    {
+                                        <DxFormLayoutItem Caption="Teléfono empresa">@solicitudSeleccionada.EmpresaTelefono
+                                        </DxFormLayoutItem>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(solicitudSeleccionada.EmpresaDireccion))
+                                    {
+                                        <DxFormLayoutItem Caption="Dirección empresa">@solicitudSeleccionada.EmpresaDireccion
+                                        </DxFormLayoutItem>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(solicitudSeleccionada.NegocioNombre))
+                                    {
+                                        <DxFormLayoutItem Caption="Negocio">@solicitudSeleccionada.NegocioNombre</DxFormLayoutItem>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(solicitudSeleccionada.NegocioTelefono))
+                                    {
+                                        <DxFormLayoutItem Caption="Teléfono negocio">@solicitudSeleccionada.NegocioTelefono
+                                        </DxFormLayoutItem>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(solicitudSeleccionada.NegocioClaveCatastral))
+                                    {
+                                        <DxFormLayoutItem Caption="Clave catastral">@solicitudSeleccionada.NegocioClaveCatastral
+                                        </DxFormLayoutItem>
+                                    }
+                                    <DxFormLayoutItem Caption="Fecha">@solicitudSeleccionada.Fecha.ToString("dd/MM/yyyy HH:mm")
+                                    </DxFormLayoutItem>
+                                    <DxFormLayoutItem Caption="Activa">@(solicitudSeleccionada.Estado ? "Sí" : "No")
+                                    </DxFormLayoutItem>
+                                </DxFormLayout>
+                            }
+                        </BodyContent>
+                    </DxPopup>
+                </div>
+            </DxTab>
 
 
         </DxTabs>
@@ -181,32 +319,191 @@
     private string? error;
     private bool isLoading = true;
 
-
-    private List<SolicitudListDto>solicitudes = new();
+    private List<SolicitudListDto> solicitudes = new();
     private bool solicitudesLoaded;
     private string? solicitudesError;
+    private List<SolicitudCategoriaDto> categorias = new();
+    private bool categoriasLoaded;
+    private string? categoriasError;
+    private SolicitudDetailDto? solicitudSeleccionada;
+    private bool detalleSolicitudVisible;
+    private bool detalleSolicitudCargando;
+    private string? detalleSolicitudError;
+    private const string ToastProviderName = "SolicitudesToast";
+    private static readonly EmailAddressAttribute EmailValidator = new();
+
+    private SolicitudCreateModel nuevaSolicitud = new();
     private async Task LoadSolicitudesAsync()
     {
-        if (solicitudesLoaded || cliente is null)
+        if (cliente is null)
             return;
+
+        await EnsureCategoriasAsync();
+
+        if (solicitudesLoaded)
+            return;
+
         try
         {
             var query = string.IsNullOrWhiteSpace(cliente.Identidad)
-                ? string.Empty
-                : $"?clienteIdentidad={Uri.EscapeDataString(cliente.Identidad)}";
+            ? string.Empty
+            : $"?clienteIdentidad={Uri.EscapeDataString(cliente.Identidad)}";
             var url = $"api/solicitudes{query}";
             solicitudes = (await Http.GetFromJsonAsync<List<SolicitudListDto>>(url)) ?? new List<SolicitudListDto>();
             solicitudesError = null;
+            solicitudesLoaded = true;
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             solicitudesError = "Error al cargar las solicitudes del cliente. " + ex.Message;
+            solicitudesLoaded = false;
+        }
+    }
+
+    private async Task EnsureCategoriasAsync()
+    {
+        if (categoriasLoaded)
+            return;
+
+        try
+        {
+            var result = await Http.GetFromJsonAsync<List<SolicitudCategoriaDto>>("api/solicitudes/categorias");
+            categorias = result?
+            .Where(c => c.Activa)
+            .OrderBy(c => c.Nombre)
+            .ToList()
+            ?? new List<SolicitudCategoriaDto>();
+            categoriasError = categorias.Count == 0
+            ? "No hay categorías activas configuradas en la base de datos."
+            : null;
+
+            if (categorias.Count > 0 &&
+            (nuevaSolicitud.CategoriaServicioId == 0 ||
+            categorias.All(c => c.Id != nuevaSolicitud.CategoriaServicioId)))
+            {
+                nuevaSolicitud.CategoriaServicioId = categorias[0].Id;
+            }
+
+            categoriasLoaded = true;
+        }
+        catch (Exception ex)
+        {
+            categoriasError = "Error al cargar las categorías de servicio. " + ex.Message;
+            categorias = new List<SolicitudCategoriaDto>();
+            categoriasLoaded = false;
+        }
+    }
+
+    private void ShowToast(string title, string message, ToastRenderStyle style)
+    {
+        ToastService.ShowToast(new ToastOptions
+        {
+            ProviderName = ToastProviderName,
+            Title = title,
+            Text = message,
+            RenderStyle = style
+        });
+    }
+
+    private async Task MostrarDetalleSolicitudAsync(SolicitudListDto item)
+    {
+        detalleSolicitudError = null;
+        detalleSolicitudCargando = true;
+        detalleSolicitudVisible = true;
+
+        try
+        {
+            await EnsureCategoriasAsync();
+            solicitudSeleccionada = await Http.GetFromJsonAsync<SolicitudDetailDto>($"api/solicitudes/{item.Id}");
+        }
+        catch (Exception ex)
+        {
+            detalleSolicitudError = "Error al cargar el detalle de la solicitud. " + ex.Message;
         }
         finally
         {
-            solicitudesLoaded = true;
+            detalleSolicitudCargando = false;
         }
-        
+    }
+
+    private async Task CrearSolicitudAsync()
+    {
+        if (cliente is null)
+            return;
+
+        await EnsureCategoriasAsync();
+
+        if (!categoriasLoaded || categorias.Count == 0)
+        {
+            ShowToast("Solicitudes", "No hay categorías activas disponibles para crear solicitudes.", ToastRenderStyle.Danger);
+            return;
+        }
+
+        var categoriaSeleccionada = categorias.FirstOrDefault(c => c.Id == nuevaSolicitud.CategoriaServicioId);
+        if (categoriaSeleccionada is null)
+        {
+            ShowToast("Solicitudes", "Seleccione una categoría válida.", ToastRenderStyle.Danger);
+            return;
+        }
+
+        try
+        {
+            var telefono = (nuevaSolicitud.Telefono ?? string.Empty).Trim();
+            var direccion = (nuevaSolicitud.Direccion ?? string.Empty).Trim();
+            var correo = (nuevaSolicitud.Correo ?? string.Empty).Trim();
+
+            if (string.IsNullOrWhiteSpace(telefono) || string.IsNullOrWhiteSpace(direccion))
+            {
+                ShowToast("Solicitudes", "Teléfono y dirección son obligatorios.", ToastRenderStyle.Danger);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(correo))
+            {
+                ShowToast("Solicitudes", "El correo es obligatorio.", ToastRenderStyle.Danger);
+                return;
+            }
+
+            if (!EmailValidator.IsValid(correo))
+            {
+                ShowToast("Solicitudes", "El correo no tiene un formato válido.", ToastRenderStyle.Danger);
+                return;
+            }
+
+            var dto = new SolicitudDetailDto(
+            0,
+            cliente.Identidad ?? string.Empty,
+            cliente.Nombre,
+            nuevaSolicitud.CategoriaServicioId,
+            telefono,
+            direccion,
+            correo,
+            string.IsNullOrWhiteSpace(nuevaSolicitud.Observacion) ? null : nuevaSolicitud.Observacion?.Trim(),
+            DateTime.UtcNow,
+            true,
+            categoriaSeleccionada.Nombre);
+
+            var response = await Http.PostAsJsonAsync("api/solicitudes", dto);
+            response.EnsureSuccessStatusCode();
+
+            solicitudesLoaded = false;
+            solicitudes.Clear();
+            await LoadSolicitudesAsync();
+
+            var solicitudNueva = solicitudes
+                .OrderByDescending(s => s.Fecha)
+                .FirstOrDefault();
+            var mensaje = solicitudNueva is not null
+                ? $"Solicitud #{solicitudNueva.Id} registrada correctamente."
+                : "Solicitud registrada correctamente.";
+            ShowToast("Solicitudes", mensaje, ToastRenderStyle.Success);
+
+            nuevaSolicitud = CrearModeloInicial();
+        }
+        catch (Exception ex)
+        {
+            ShowToast("Solicitudes", "Error al registrar la solicitud. " + ex.Message, ToastRenderStyle.Danger);
+        }
     }
 
     protected override async Task OnParametersSetAsync()
@@ -217,6 +514,10 @@
         try
         {
             cliente = await Http.GetFromJsonAsync<ClienteDetailDto>($"api/clientes/{Id}");
+            if (cliente is not null)
+            {
+                nuevaSolicitud = CrearModeloInicial();
+            }
         }
         catch (HttpRequestException ex)
         {
@@ -244,7 +545,7 @@
         try
         {
             tarifas = await Http.GetFromJsonAsync<ClienteTarifaDto[]>($"api/clientes/{cliente.Id}/tarifas")
-                      ?? Array.Empty<ClienteTarifaDto>();
+            ?? Array.Empty<ClienteTarifaDto>();
             tarifasError = null;
         }
         catch (Exception ex)
@@ -285,7 +586,7 @@
         try
         {
             movimientos = await Http.GetFromJsonAsync<ClienteMovimientoDto[]>($"api/clientes/{cliente.Id}/movimientos")
-                         ?? Array.Empty<ClienteMovimientoDto>();
+            ?? Array.Empty<ClienteMovimientoDto>();
             movimientosError = null;
         }
         catch (Exception ex)
@@ -296,5 +597,23 @@
         {
             movimientosLoaded = true;
         }
+    }
+
+    private SolicitudCreateModel CrearModeloInicial() => new()
+    {
+        Telefono = cliente?.Telefono ?? string.Empty,
+        Direccion = cliente?.Direccion ?? string.Empty,
+        Correo = string.Empty,
+        Observacion = null,
+        CategoriaServicioId = categorias.FirstOrDefault()?.Id ?? 0
+    };
+
+    private class SolicitudCreateModel
+    {
+        public string Telefono { get; set; } = string.Empty;
+        public string Direccion { get; set; } = string.Empty;
+        public string? Correo { get; set; }
+        public string? Observacion { get; set; }
+        public int CategoriaServicioId { get; set; }
     }
 }
