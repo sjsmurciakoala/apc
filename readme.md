@@ -84,7 +84,43 @@ El objetivo es migrar el sistema SIAD (actualmente en ASPNET_Core_3) hacia una s
   * Agrega el paquete base a los proyectos que lo requieran:
   - dotnet add <Proyecto>.csproj package DevExpress.Blazor
     dotnet restore
-
+## 2.7 Scaffold
+ * dotnet tool run dotnet-ef dbcontext scaffold `
+    "Host=3.208.232.209;Port=5432;Database=bdnes;Username=postgres;Password=Koala@2021;Timeout=10;SslMode=Prefer" `
+    Npgsql.EntityFrameworkCore.PostgreSQL `
+    -p SIAD.Data/SIAD.Data.csproj `
+    -s apc/apc.csproj `
+    -c SiadDbContext `
+    --no-onconfiguring `
+    --context-dir . `
+    --context-namespace SIAD.Data `
+    --namespace SIAD.Core.Entities `
+    --use-database-names `
+    --output-dir SIAD.Core/Entities `
+    --force `
+    -t cliente_maestro `
+    -t cliente_detalle `
+    -t barrio `
+    -t ciclos `
+    -t categoria_servicio `
+    -t tarifas `
+    -t tarifas_contador `
+    -t configuracion_tasas `
+    -t configuracion_tasas_detalle `
+    -t configuracion_cobros_adicionales `
+    -t concepto_cobro_adicional `
+    -t historialmes `
+    -t historicomedicion `
+    -t historicosinmedidor `
+    -t transaccion_abonado `
+    -t maestro_medidor `
+    -t servicios `
+    -t condicion_lectura `
+    -t tipo_uso_servicio
+##--------------
+ - cambiar -t <nombre de la tabla > que quieren agregar al context SiadDbContext 
+ - Tener Precaucion de no borrar las tablas que ya tenian agregar a el context  
+ 
 ## 3. Estrategia de migración
 1. **Inventario funcional**: mapear cada área del sistema legado a módulos Blazor (clientes, cobranza, bancos, contabilidad, etc.).
 2. **Refactor de acceso a datos**: trasladar entidades y repositorios a SIAD.Data y SIAD.Services, reemplazando Dapper por EF Core donde sea viable.
