@@ -5,14 +5,19 @@
   - Script: `Database/2025-10-18_seed_cliente_demo.sql`
   - Ejecutar: `psql -h 3.208.232.209 -U postgres -d bdnes -f Database/2025-10-18_seed_cliente_demo.sql`
   - Crea catálogo `Tarifa Demo Residencial`, configuración de tasas y movimientos en `transaccion_abonado`.
-- UI (`ClienteDetail.razor`) con pestañas: Datos generales, Tarifas y Estado de cuenta (resumen + movimientos).
-- Servicios (`ClientesService`) implementan listado, detalle, filtros, tarifas, estado de cuenta y movimientos.
-- API (`ClientesController`) expone:
-  - `GET /api/clientes`, `/api/clientes/{id}`, `/api/clientes/search`
-  - `GET /api/clientes/{id}/tarifas`
-  - `GET /api/clientes/{id}/estado-cuenta`
-  - `GET /api/clientes/{id}/movimientos`
-- Documentación del módulo: `modulo_clientes.md` (resumen, métodos y endpoints).
+- UI (`ClienteDetail.razor`) con pestañas: Datos generales, Tarifas, Estado de cuenta, **Solicitudes** y **Medidores**.
+- Servicios disponibles:
+  - `ClientesService` (listado, detalle, filtros, tarifas, estado de cuenta, movimientos).
+  - `SolicitudesService` (listar/filtrar, detalle, alta y catálogos).
+  - `MedidoresService` (buscar medidores, detalle + historial, asignación a cliente y registro de lecturas sin medidor).
+- API:
+  - `ClientesController`: `GET /api/clientes*`, `GET /api/clientes/{id}/tarifas`, `.../estado-cuenta`, `.../movimientos`.
+  - `SolicitudesController`: `GET /api/solicitudes`, `GET /api/solicitudes/{id}`, `POST /api/solicitudes`.
+  - `MedidoresController`: `GET /api/medidores`, `GET /api/medidores/{id}`, `GET /api/medidores/{id}/historial`, `POST /api/medidores/asignar`, `POST /api/medidores/lecturas-sin-medidor`.
+- Documentación viva:
+  - `modulo_clientes.md`
+  - `modulo_solicitudes.md`
+  - `modulo_medidores.md` (incluye checklist, endpoints y tareas pendientes de seed).
 
 ## Cómo validar la semilla
 1. Ejecutar el script indicado.
@@ -21,26 +26,9 @@
 4. Pestaña **Estado de cuenta** → *Cargar estado de cuenta* y *Cargar movimientos* → revisar resumen y grilla.
 
 ## Próximo bloque sugerido
-- Migrar “Solicitudes de servicio”:
-  1. Scaffold tablas `solicitudes_*`.
-  2. Crear DTOs/servicios (`ISolicitudesService`, etc.).
-  3. Endpoints `GET/POST`.
-  4. Agregar UI (pestaña/página) en Blazor.
-  5. Actualizar `modulo_clientes.md`.
+- Completar seed de medidores (`Database/2025-10-XX_seed_medidores.sql`) y validar asignación end-to-end.
+- Definir siguiente módulo del backlog legado (ej. AuxiliarLectura u Ordenes) replicando la dinámica de documentación → implementación.
 
 ## Notas
-- Cambios listos para commit, se sugiere:
-  ```bash
-  git add Database/2025-10-18_seed_cliente_demo.sql \
-          SIAD.Core/DTOs/Clientes/*.cs \
-          SIAD.Core/Entities/configuracion_tasa.cs \
-          SIAD.Core/Entities/tarifas_catalogo.cs \
-          SIAD.Data/SiadDbContext.cs \
-          SIAD.Services/Clientes/IClientesService.cs \
-          SIAD.Services/Clientes/ClientesServices.cs \
-          apc/Controllers/ClientesController.cs \
-          apc.Client/Pages/Clientes/ClienteDetail.razor \
-          modulo_clientes.md \
-          README_estado_actual.md
-  git commit -m "feat: add client demo seed and account summary"
-  ```
+- Las advertencias CS8981 y WASM0001 provienen del scaffold EF/DevExpress y se mantienen bajo control.
+- Actualiza este documento cuando cierres el pendiente del seed de medidores o arranques el siguiente módulo.

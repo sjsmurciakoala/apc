@@ -38,6 +38,8 @@ public partial class SiadDbContext : DbContext
 
     public virtual DbSet<historicosinmedidor> historicosinmedidors { get; set; }
 
+    public virtual DbSet<configuracion_app_lectura_medidore> configuracion_app_lectura_medidores { get; set; }
+
     public virtual DbSet<maestro_medidor> maestro_medidors { get; set; }
 
     public virtual DbSet<servicio> servicios { get; set; }

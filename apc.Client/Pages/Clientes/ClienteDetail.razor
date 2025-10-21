@@ -11,7 +11,7 @@
 @inject IToastNotificationService ToastService
 
 <DxScrollView Height="100%">
-    <DxToastProvider Name="SolicitudesToast"
+    <DxToastProvider Name="MainToast"
                      MaxToastCount="4" />
     <DxToolbar>
         <Items>
@@ -296,6 +296,220 @@
             </DxTab>
 
 
+            <DxTab Text="Medidores">
+                <div class="d-flex flex-column gap-3">
+                    <div class="d-flex flex-wrap gap-2">
+                        <DxButton Text="Cargar medidores" SizeMode="SizeMode.Medium"
+                                  RenderStyle="ButtonRenderStyle.Secondary"
+                                  Click="LoadMedidoresAsync"
+                                  Enabled="@(cliente is not null && !medidoresLoading)" />
+                        <DxButton Text="Asignar medidor" SizeMode="SizeMode.Medium"
+                                  RenderStyle="ButtonRenderStyle.Primary"
+                                  Click="AsignarMedidorPopupAsync"
+                                  Enabled="@(cliente is not null)" />
+                        <DxButton Text="Registrar lectura sin medidor" SizeMode="SizeMode.Medium"
+                                  RenderStyle="ButtonRenderStyle.Secondary"
+                                  Click="AbrirLecturaSinMedidorAsync"
+                                  Enabled="@(cliente is not null)" />
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(medidoresError))
+                    {
+                        <DxAlert AlertType="AlertType.Danger">@medidoresError</DxAlert>
+                    }
+                    else if (medidoresLoading)
+                    {
+                        <DxSkeletonLine />
+                    }
+                    else if (medidoresLoaded && medidores.Count == 0)
+                    {
+                        <DxAlert AlertType="AlertType.Info">Sin medidores asociados.</DxAlert>
+                    }
+                    else if (medidores.Count > 0)
+                    {
+                        <DxGrid Data="@medidores" KeyFieldName="Id" ShowFilterRow="true">
+                            <Columns>
+                                <DxGridDataColumn FieldName="Numero" Caption="N�mero" />
+                                <DxGridDataColumn FieldName="Marca" Caption="Marca" />
+                                <DxGridDataColumn FieldName="Diametro" Caption="Di�metro" />
+                                <DxGridDataColumn FieldName="FechaInstalacion" Caption="Instalado">
+                                    <CellDisplayTemplate Context="cell">
+                                        @{
+                                            var medidor = (MedidorListDto)cell.DataItem;
+                                        }
+                                        @(medidor.FechaInstalacion?.ToString("dd/MM/yyyy") ?? "-")
+                                    </CellDisplayTemplate>
+                                </DxGridDataColumn>
+                                <DxGridDataColumn FieldName="Acueducto" Caption="Acueducto" />
+                                <DxGridDataColumn FieldName="Estado" Caption="Activo">
+                                    <CellDisplayTemplate Context="cell">
+                                        @(((MedidorListDto)cell.DataItem).Estado ? "S�" : "No")
+                                    </CellDisplayTemplate>
+                                </DxGridDataColumn>
+                                <DxGridDataColumn FieldName="ClienteNombre" Caption="Cliente" />
+                                <DxGridDataColumn Caption="Acciones">
+                                    <CellDisplayTemplate Context="cell">
+                                        @{
+                                            var item = (MedidorListDto)cell.DataItem;
+                                        }
+                                        <DxButton Text="Ver detalle" RenderStyle="ButtonRenderStyle.Link"
+                                                  Click="@(() => MostrarDetalleMedidorAsync(item))" />
+                                    </CellDisplayTemplate>
+                                </DxGridDataColumn>
+                            </Columns>
+                        </DxGrid>
+                    }
+
+                    <DxPopup ShowCloseButton="true" CloseOnOutsideClick="true"
+                             Visible="medidorDetalleVisible"
+                             VisibleChanged="@(v => medidorDetalleVisible = v)">
+                        <HeaderContent>Detalle de medidor</HeaderContent>
+                        <BodyContent>
+                            @if (medidorDetalleCargando)
+                            {
+                                <DxSkeletonLine />
+                            }
+                            else if (!string.IsNullOrEmpty(medidorDetalleError))
+                            {
+                                <DxAlert AlertType="AlertType.Danger">@medidorDetalleError</DxAlert>
+                            }
+                            else if (medidorDetalle is not null)
+                            {
+                                <DxFormLayout>
+                                    <DxFormLayoutItem Caption="N�mero">@medidorDetalle.Numero</DxFormLayoutItem>
+                                    <DxFormLayoutItem Caption="Marca">@medidorDetalle.Marca</DxFormLayoutItem>
+                                    <DxFormLayoutItem Caption="Di�metro">@medidorDetalle.Diametro</DxFormLayoutItem>
+                                    <DxFormLayoutItem Caption="Instalado">@(
+                                        medidorDetalle.FechaInstalacion?.ToString("dd/MM/yyyy") ?? "-")</DxFormLayoutItem>
+                                    <DxFormLayoutItem Caption="Acueducto">@medidorDetalle.Acueducto</DxFormLayoutItem>
+                                    <DxFormLayoutItem Caption="Activo">@(medidorDetalle.Estado ? "S�" : "No")</DxFormLayoutItem>
+                                    <DxFormLayoutItem Caption="Cliente clave">@medidorDetalle.ClienteClave</DxFormLayoutItem>
+                                    <DxFormLayoutItem Caption="Cliente nombre">@medidorDetalle.ClienteNombre</DxFormLayoutItem>
+                                    <DxFormLayoutItem Caption="Barrio">@medidorDetalle.ClienteBarrio</DxFormLayoutItem>
+                                </DxFormLayout>
+
+                                <DxGrid Data="@medidorDetalle.Historial" KeyFieldName="Fecha" CssClass="mt-3">
+                                    <Columns>
+                                        <DxGridDataColumn FieldName="Fecha" Caption="Fecha">
+                                            <CellDisplayTemplate Context="cell">
+                                                @{
+                                                    var historico = (MedidorHistorialDto)cell.DataItem;
+                                                }
+                                                @(historico.Fecha?.ToString("dd/MM/yyyy") ?? "-")
+                                            </CellDisplayTemplate>
+                                        </DxGridDataColumn>
+                                        <DxGridDataColumn FieldName="LecturaActual" Caption="Lectura actual" />
+                                        <DxGridDataColumn FieldName="LecturaAnterior" Caption="Lectura anterior" />
+                                        <DxGridDataColumn FieldName="Consumo" Caption="Consumo" />
+                                        <DxGridDataColumn FieldName="Condicion" Caption="Condici�n" />
+                                        <DxGridDataColumn FieldName="Observaciones" Caption="Observaciones" />
+                                        <DxGridDataColumn FieldName="Usuario" Caption="Usuario" />
+                                    </Columns>
+                                </DxGrid>
+
+                                @if (medidorDetalle.ConfiguracionesApp?.Count > 0)
+                                {
+                                    <DxAlert CssClass="mt-3" AlertType="AlertType.Info">
+                                        <strong>Configuraciones app:</strong>
+                                        <ul>
+                                            @foreach (var cfg in medidorDetalle.ConfiguracionesApp)
+                                            {
+                                                <li>@cfg</li>
+                                            }
+                                        </ul>
+                                    </DxAlert>
+                                }
+                            }
+                        </BodyContent>
+                    </DxPopup>
+
+                    <DxPopup ShowCloseButton="true" CloseOnOutsideClick="true"
+                             Visible="asignacionPopupVisible"
+                             VisibleChanged="@(v => asignacionPopupVisible = v)">
+                        <HeaderContent>Asignar medidor al cliente</HeaderContent>
+                        <BodyContent>
+                            @if (!string.IsNullOrEmpty(asignacionError))
+                            {
+                                <DxAlert AlertType="AlertType.Danger">@asignacionError</DxAlert>
+                            }
+
+                            @if (medidoresDisponiblesLoading)
+                            {
+                                <DxSkeletonLine />
+                            }
+                            else
+                            {
+                                @if (!string.IsNullOrEmpty(medidoresDisponiblesError))
+                                {
+                                    <DxAlert AlertType="AlertType.Danger">@medidoresDisponiblesError</DxAlert>
+                                }
+                                else if (medidoresDisponibles.Count == 0)
+                                {
+                                    <DxAlert AlertType="AlertType.Info">No hay medidores disponibles para asignar.</DxAlert>
+                                }
+                                else
+                                {
+                                    <DxFormLayout>
+                                        <DxFormLayoutItem Caption="Medidor">
+                                            <DxComboBox Data="@medidoresDisponibles"
+                                                        @bind-Value="asignacionModel.MedidorId"
+                                                        ValueFieldName="Id"
+                                                        TextFieldName="Numero"
+                                                        NullText="Seleccione un medidor"
+                                                        DropDownWidth="320px" />
+                                        </DxFormLayoutItem>
+                                    </DxFormLayout>
+                                }
+                            }
+
+                            <div class="d-flex gap-2 mt-3">
+                                <DxButton Text="Asignar" RenderStyle="ButtonRenderStyle.Primary"
+                                          Click="GuardarAsignacionMedidorAsync"
+                                          Enabled="@(asignacionModel.MedidorId.HasValue && !asignacionGuardando)" />
+                                <DxButton Text="Cancelar" RenderStyle="ButtonRenderStyle.Secondary"
+                                          Click="@(() => asignacionPopupVisible = false)" />
+                            </div>
+                        </BodyContent>
+                    </DxPopup>
+
+                    <DxPopup ShowCloseButton="true" CloseOnOutsideClick="true"
+                             Visible="lecturaPopupVisible"
+                             VisibleChanged="@(v => lecturaPopupVisible = v)">
+                        <HeaderContent>Registrar lectura sin medidor</HeaderContent>
+                        <BodyContent>
+                            @if (!string.IsNullOrEmpty(lecturaError))
+                            {
+                                <DxAlert AlertType="AlertType.Danger">@lecturaError</DxAlert>
+                            }
+
+                            <DxFormLayout>
+                                <DxFormLayoutItem Caption="Cuenta *">
+                                    <DxTextBox @bind-Text="lecturaModel.Clave" />
+                                </DxFormLayoutItem>
+                                <DxFormLayoutItem Caption="Fecha *">
+                                    <DxDateEdit @bind-Date="lecturaModel.Fecha" />
+                                </DxFormLayoutItem>
+                                <DxFormLayoutItem Caption="Lectura *">
+                                    <DxSpinEdit @bind-Value="lecturaModel.Lectura" Min="0" />
+                                </DxFormLayoutItem>
+                                <DxFormLayoutItem Caption="Usuario">
+                                    <DxTextBox @bind-Text="lecturaModel.Usuario" />
+                                </DxFormLayoutItem>
+                            </DxFormLayout>
+
+                            <div class="d-flex gap-2 mt-3">
+                                <DxButton Text="Registrar" RenderStyle="ButtonRenderStyle.Primary"
+                                          Click="RegistrarLecturaSinMedidorAsync"
+                                          Enabled="@(lecturaModel.Lectura >= 0 && !lecturaGuardando)" />
+                                <DxButton Text="Cancelar" RenderStyle="ButtonRenderStyle.Secondary"
+                                          Click="@(() => lecturaPopupVisible = false)" />
+                            </div>
+                        </BodyContent>
+                    </DxPopup>
+                </div>
+            </DxTab>
+
+
         </DxTabs>
     }
 </DxScrollView>
@@ -329,7 +543,32 @@
     private bool detalleSolicitudVisible;
     private bool detalleSolicitudCargando;
     private string? detalleSolicitudError;
-    private const string ToastProviderName = "SolicitudesToast";
+
+    private List<MedidorListDto> medidores = new();
+    private bool medidoresLoaded;
+    private bool medidoresLoading;
+    private string? medidoresError;
+
+    private MedidorDetailDto? medidorDetalle;
+    private bool medidorDetalleVisible;
+    private bool medidorDetalleCargando;
+    private string? medidorDetalleError;
+
+    private List<MedidorListDto> medidoresDisponibles = new();
+    private bool medidoresDisponiblesLoading;
+    private string? medidoresDisponiblesError;
+
+    private bool asignacionPopupVisible;
+    private bool asignacionGuardando;
+    private string? asignacionError;
+    private MedidorAssignModel asignacionModel = new();
+
+    private bool lecturaPopupVisible;
+    private bool lecturaGuardando;
+    private string? lecturaError;
+    private LecturaSinMedidorModel lecturaModel = new();
+
+    private const string ToastProviderName = "MainToast";
     private static readonly EmailAddressAttribute EmailValidator = new();
 
     private SolicitudCreateModel nuevaSolicitud = new();
@@ -403,6 +642,196 @@
             Text = message,
             RenderStyle = style
         });
+    }
+
+    private async Task LoadMedidoresAsync()
+    {
+        if (cliente is null || medidoresLoading)
+            return;
+
+        medidoresLoading = true;
+        medidoresError = null;
+
+        try
+        {
+            var url = string.IsNullOrWhiteSpace(cliente.Codigo)
+                ? "api/medidores"
+                : $"api/medidores?ClienteClave={Uri.EscapeDataString(cliente.Codigo)}";
+            var result = await Http.GetFromJsonAsync<List<MedidorListDto>>(url);
+            medidores = result ?? new List<MedidorListDto>();
+            medidoresLoaded = true;
+        }
+        catch (Exception ex)
+        {
+            medidoresError = "Error al cargar los medidores. " + ex.Message;
+            medidoresLoaded = false;
+        }
+        finally
+        {
+            medidoresLoading = false;
+        }
+    }
+
+    private async Task MostrarDetalleMedidorAsync(MedidorListDto item)
+    {
+        medidorDetalleVisible = true;
+        medidorDetalleCargando = true;
+        medidorDetalleError = null;
+
+        try
+        {
+            medidorDetalle = await Http.GetFromJsonAsync<MedidorDetailDto>($"api/medidores/{item.Id}");
+        }
+        catch (Exception ex)
+        {
+            medidorDetalleError = "Error al cargar el detalle del medidor. " + ex.Message;
+        }
+        finally
+        {
+            medidorDetalleCargando = false;
+        }
+    }
+
+    private async Task AsignarMedidorPopupAsync()
+    {
+        if (cliente is null)
+            return;
+
+        asignacionError = null;
+        asignacionModel = new MedidorAssignModel();
+        asignacionPopupVisible = true;
+        await LoadMedidoresDisponiblesAsync();
+    }
+
+    private async Task LoadMedidoresDisponiblesAsync()
+    {
+        medidoresDisponiblesLoading = true;
+        medidoresDisponiblesError = null;
+
+        try
+        {
+            var result = await Http.GetFromJsonAsync<List<MedidorListDto>>("api/medidores?Asignado=false");
+            medidoresDisponibles = result ?? new List<MedidorListDto>();
+        }
+        catch (Exception ex)
+        {
+            medidoresDisponiblesError = "Error al cargar los medidores disponibles. " + ex.Message;
+            medidoresDisponibles = new List<MedidorListDto>();
+        }
+        finally
+        {
+            medidoresDisponiblesLoading = false;
+        }
+    }
+
+    private async Task GuardarAsignacionMedidorAsync()
+    {
+        if (cliente is null)
+            return;
+
+        if (!asignacionModel.MedidorId.HasValue)
+        {
+            asignacionError = "Seleccione un medidor.";
+            return;
+        }
+
+        asignacionGuardando = true;
+        asignacionError = null;
+
+        try
+        {
+            var payload = new
+            {
+                MedidorId = asignacionModel.MedidorId.Value,
+                ClienteId = cliente.Id
+            };
+
+            var response = await Http.PostAsJsonAsync("api/medidores/asignar", payload);
+
+            if (response.IsSuccessStatusCode)
+            {
+                ShowToast("Medidores", "Medidor asignado correctamente.", ToastRenderStyle.Success);
+                asignacionPopupVisible = false;
+                medidoresLoaded = false;
+                await LoadMedidoresAsync();
+            }
+            else
+            {
+                var detail = await response.Content.ReadAsStringAsync();
+                asignacionError = string.IsNullOrWhiteSpace(detail)
+                    ? "No se pudo asignar el medidor."
+                    : detail;
+            }
+        }
+        catch (Exception ex)
+        {
+            asignacionError = "Error al asignar el medidor. " + ex.Message;
+        }
+        finally
+        {
+            asignacionGuardando = false;
+        }
+    }
+
+    private Task AbrirLecturaSinMedidorAsync()
+    {
+        if (cliente is null)
+            return Task.CompletedTask;
+
+        lecturaError = null;
+        lecturaModel = new LecturaSinMedidorModel
+        {
+            Clave = cliente.Codigo,
+            Fecha = DateTime.Today
+        };
+        lecturaPopupVisible = true;
+        return Task.CompletedTask;
+    }
+
+    private async Task RegistrarLecturaSinMedidorAsync()
+    {
+        if (string.IsNullOrWhiteSpace(lecturaModel.Clave))
+        {
+            lecturaError = "La cuenta es obligatoria.";
+            return;
+        }
+
+        lecturaGuardando = true;
+        lecturaError = null;
+
+        try
+        {
+            var payload = new
+            {
+                Clave = lecturaModel.Clave.Trim(),
+                Fecha = lecturaModel.Fecha,
+                Lectura = lecturaModel.Lectura,
+                Usuario = string.IsNullOrWhiteSpace(lecturaModel.Usuario) ? "app" : lecturaModel.Usuario.Trim()
+            };
+
+            var response = await Http.PostAsJsonAsync("api/medidores/lecturas-sin-medidor", payload);
+            if (response.IsSuccessStatusCode)
+            {
+                ShowToast("Medidores", "Lectura registrada correctamente.", ToastRenderStyle.Success);
+                lecturaPopupVisible = false;
+                lecturaModel = new LecturaSinMedidorModel();
+            }
+            else
+            {
+                var detail = await response.Content.ReadAsStringAsync();
+                lecturaError = string.IsNullOrWhiteSpace(detail)
+                    ? "No se pudo registrar la lectura."
+                    : detail;
+            }
+        }
+        catch (Exception ex)
+        {
+            lecturaError = "Error al registrar la lectura. " + ex.Message;
+        }
+        finally
+        {
+            lecturaGuardando = false;
+        }
     }
 
     private async Task MostrarDetalleSolicitudAsync(SolicitudListDto item)
@@ -615,5 +1044,18 @@
         public string? Correo { get; set; }
         public string? Observacion { get; set; }
         public int CategoriaServicioId { get; set; }
+    }
+
+    private class MedidorAssignModel
+    {
+        public int? MedidorId { get; set; }
+    }
+
+    private class LecturaSinMedidorModel
+    {
+        public string Clave { get; set; } = string.Empty;
+        public DateTime Fecha { get; set; } = DateTime.Today;
+        public decimal Lectura { get; set; }
+        public string Usuario { get; set; } = string.Empty;
     }
 }
